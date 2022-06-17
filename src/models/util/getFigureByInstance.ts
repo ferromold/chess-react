@@ -1,12 +1,12 @@
-import {Figure, FigureNames} from "./models/figures/Figure";
-import {King} from "./models/figures/King";
-import {Knight} from "./models/figures/Knight";
-import {Pawn} from "./models/figures/Pawn";
-import {Queen} from "./models/figures/Queen";
-import {Rook} from "./models/figures/Rook";
-import {Bishop} from "./models/figures/Bishop";
-import {Colors} from "./models/Colors";
-import {Cell} from "./models/Cell";
+import {Figure, FigureNames} from "../figures/Figure";
+import {King} from "../figures/King";
+import {Knight} from "../figures/Knight";
+import {Pawn} from "../figures/Pawn";
+import {Queen} from "../figures/Queen";
+import {Rook} from "../figures/Rook";
+import {Bishop} from "../figures/Bishop";
+import {Colors} from "../Colors";
+import {Cell} from "../Cell";
 
 export function getFigureByInstance(figure: Figure, color: Colors, newCell: Cell){
   let newFigure
@@ -30,6 +30,9 @@ export function getFigureByInstance(figure: Figure, color: Colors, newCell: Cell
       newFigure = new Bishop(color, newCell)
       break;
   }
-
+  if(newFigure){
+    newFigure.isFirstStep = figure.isFirstStep
+  }
+  return newFigure
 }
 
