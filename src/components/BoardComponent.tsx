@@ -6,51 +6,54 @@ import {Player} from "../models/Player";
 import {Colors} from "../models/Colors";
 import PieceSelection from "./PieceSelection";
 import {Figure} from "../models/figures/Figure";
+import {observer} from "mobx-react-lite";
+import {players} from '../store/players'
+import {game} from '../store/game'
 
-interface BoardProps{
-  board: Board
-  setBoard: (board: Board) => void
-  currentPlayer: Player | null
+interface BoardProps {
   swapPlayer: () => void
-  pause: boolean
-  setCanBack: (status: boolean) => void
-  winner: Player | null
-  pawnEnd: boolean
   handlePawnEnd: (status: boolean) => void
   handleResetMove: () => void
   handleMoved: (boardCurrent: Board) => void
+  hintsVision: boolean
 }
 
-const BoardComponent: FC<BoardProps> = ({board, setBoard, currentPlayer, swapPlayer, handleResetMove, pause, setCanBack, winner, pawnEnd, handleMoved, handlePawnEnd}) => {
+const BoardComponent: FC<BoardProps> = observer(({
+                                                   swapPlayer,
+                                                   handleResetMove,
+                                                   handleMoved,
+                                                   handlePawnEnd,
+                                                   hintsVision,
+                                                 }) => {
 
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null)
 
-  function click(cell: Cell){
-    if(pause || winner) return
-    if(selectedCell && selectedCell !== cell && selectedCell.figure?.canMove(cell)){
-      const lastBoard = board.getDeepCopyBoard()
+  function click(cell: Cell) {
+    if (game.pause || players.winner) return
+    if (selectedCell && selectedCell !== cell && selectedCell.figure?.canMove(cell)) {
+      const lastBoard = game.board.getDeepCopyBoard()
       const isCheck = selectedCell.moveFigure(cell)
-      if(isCheck){
-        setBoard(lastBoard)
+      if (isCheck) {
+        game.setBoard(lastBoard)
         return;
       }
       handleMoved(lastBoard)
-      if(cell.isPawnEnd()){
+      if (cell.isPawnEnd()) {
         handlePawnEnd(true)
         setSelectedCell(cell)
         return;
       }
       setSelectedCell(null)
       swapPlayer()
-    }else {
-      if(cell.figure?.color === currentPlayer?.color) {
+    } else {
+      if (cell.figure?.color === players.currentPlayer?.color) {
         setSelectedCell(cell)
       }
     }
   }
 
-  function pawnNewFigure(figure: Figure){
-    if(selectedCell){
+  function pawnNewFigure(figure: Figure) {
+    if (selectedCell) {
       selectedCell.setFigure(figure)
     }
     setSelectedCell(null)
@@ -62,29 +65,29 @@ const BoardComponent: FC<BoardProps> = ({board, setBoard, currentPlayer, swapPla
     highlightCells()
   }, [selectedCell])
 
-  function highlightCells(){
-    board.highlightCells(selectedCell)
+  function highlightCells() {
+    game.board.highlightCells(selectedCell)
     updateBoard()
   }
 
-  function updateBoard(){
-    const newBoard = board.getCopyBoard()
-    setBoard(newBoard)
+  function updateBoard() {
+    const newBoard = game.board.getCopyBoard()
+    game.setBoard(newBoard)
   }
 
   return (
-    <div>
-      <h3>{currentPlayer?.color}</h3>
-      {pawnEnd && <PieceSelection
+      <div className={'board'}>
+        {game.pawnEnd && <PieceSelection
           color={selectedCell?.figure?.color as Colors}
           setSelectedFigure={pawnNewFigure}
-          figures={selectedCell?.figure?.color === Colors.WHITE ? board.figuresPawn.white : board.figuresPawn.black}
-      />}
-      <div className={'board'}>
-        {board.cells.map((row, index) =>
+          figures={selectedCell?.figure?.color === Colors.WHITE ? game.board.figuresPawn.white : game.board.figuresPawn.black}
+        />}
+        {game.pause && <div className={'board--inactive'}></div>}
+        {game.board.cells.map((row, index) =>
           <React.Fragment key={index}>
             {row.map(cell =>
               <CellComponent
+                hintsVision={hintsVision}
                 key={cell.id}
                 cell={cell}
                 selected={cell.x === selectedCell?.x && cell.y === selectedCell?.y}
@@ -94,10 +97,8 @@ const BoardComponent: FC<BoardProps> = ({board, setBoard, currentPlayer, swapPla
           </React.Fragment>
         )}
       </div>
-    </div>
   );
-};
-
+})
 
 
 export default BoardComponent;

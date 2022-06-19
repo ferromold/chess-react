@@ -11,12 +11,11 @@ interface PieceSelectionProps{
 const PieceSelection: FC<PieceSelectionProps> = ({color, setSelectedFigure, figures}) => {
 
   return (
-    <div className={'pawnSelection ' + color}>
+    <div className={'pawnSelection'}>
       {figures.map(figure =>
         <div
           key={figure.id}
-          className={'cell'}
-          style={{border: '1px solid black', margin: 10}}
+          className={'cell pawn_cell'}
           onClick={() => setSelectedFigure(figure)}
         >
           {figure.logo && <img src={figure.logo} alt={figure.name}/>}

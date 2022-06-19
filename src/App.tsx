@@ -6,115 +6,127 @@ import {Player} from "./models/Player";
 import {Colors} from "./models/Colors";
 import LostFigures from "./components/LostFigures";
 import Timer from "./components/Timer";
-import {FigureNames} from "./models/figures/Figure";
+import Header from "./components/Header";
+import Settings from "./components/Settings";
+import {time} from "./store/time";
+import {players} from "./store/players";
+import {game} from "./store/game";
+import {observer} from "mobx-react-lite";
+import Title from "./components/Title";
+import ButtonSquare from "./components/UI/ButtonSquare";
+import SettingsService from "./API/SettingsService";
 
-function App() {
-  const [board, setBoard] = useState(new Board())
-  const [whitePlayer, setWhitePlayer] = useState(new Player(Colors.WHITE))
-  const [blackPlayer, setBlackPlayer] = useState(new Player(Colors.BLACK))
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
-  const [winner, setWinner] = useState<Player | null>(null)
-  const [pause, setPause] = useState(false)
-  const [pawnEnd, setPawnEnd] = useState<boolean>(false)
-  const [lastBoard, setLastBoard] = useState(new Board())
-  const [canBack, setCanBack] = useState<boolean>(true)
-  const [initialTime, setInitialTime] = useState(100)
+const App = observer(() => {
+  const [hintsVision, setHintsVision] = useState(true)
+  const [settingsVision, setSettingsVision] = useState(false)
+
 
   useEffect(() => {
-    restart()
-    setCurrentPlayer(whitePlayer)
+    const {hints, time: initialTime} = SettingsService.getConfig()
+    setHintsVision(hints)
+    handleRestart(initialTime)
   }, [])
 
-  function restart(){
-    const newBoard = new Board()
-    newBoard.init()
-    setBoard(newBoard)
-    setCurrentPlayer(whitePlayer)
-    setWinner(null)
-    setPause(false)
-    setPawnEnd(false)
-    setCanBack(false)
+  function handleRestart(initialTime?: number) {
+    game.init()
+    players.init()
+    initialTime ? time.initTime(initialTime) : time.initTime()
   }
 
-  function handleMoved(boardCurrent: Board){
-    setLastBoard(boardCurrent)
-    setCanBack(true)
+  function handleMoved(boardCurrent: Board) {
+    game.setLastBoard(boardCurrent)
+    game.setCanBack(true)
   }
 
-  function handleResetMove(){
-    setBoard(lastBoard)
+  function handleResetMove() {
+    game.setBoard(game.lastBoard)
     swapPlayer()
-    setCanBack(false)
-    setWinner(null)
+    game.setCanBack(false)
+    players.setWinner(null)
   }
 
-  function isCheckMate(player: Player): boolean{
+  function isCheckMate(player: Player): boolean {
     const color = player?.color
-    return board.isCheckMateOnBoard(color)
-
+    return game.board.isCheckMateOnBoard(color)
   }
 
-  function swapPlayer(){
-    const player = currentPlayer?.color === Colors.WHITE ? blackPlayer :  whitePlayer
-    setCurrentPlayer(player)
-    if(isCheckMate(player)){
-      setWinner(player?.color === Colors.WHITE ? blackPlayer :  whitePlayer)
+  function swapPlayer() {
+    const player = players.currentPlayer?.color === Colors.WHITE ? players.blackPlayer : players.whitePlayer
+    players.setCurrentPlayer(player)
+    if (isCheckMate(player)) {
+      players.setWinner(player?.color === Colors.WHITE ? players.blackPlayer : players.whitePlayer)
     }
   }
 
-  function timerIsOver(color: Colors){
-    setWinner(color === Colors.WHITE ? blackPlayer :  whitePlayer)
+  function timerIsOver(color: Colors) {
+    players.setWinner(color === Colors.WHITE ? players.blackPlayer : players.whitePlayer)
   }
 
-  function handlePawnEnd(status: boolean){
-    setPause(status)
-    setPawnEnd(status)
-    setCanBack(!status)
+  function handlePawnEnd(status: boolean) {
+    game.setPause(status)
+    game.setPawnEnd(status)
+    game.setCanBack(!status)
+  }
+
+  function handleUpdateSettings(times: number, hints: boolean) {
+    time.initTime(times * 60)
+    setHintsVision(hints)
+    SettingsService.setConfig({time: times*60, hints})
+    setSettingsVision(false)
+    handleRestart()
   }
 
   return (
     <div className="app">
-      <Timer
-        pawnEnd={pawnEnd}
-        currentPlayer={currentPlayer}
-        restart={restart}
-        timerIsOver={timerIsOver}
-        winner={winner}
-        pause={pause}
-        setPause={setPause}
-        initialTime={initialTime}
+      <Header
+        settingsVision={settingsVision}
+        setSettingsVision={setSettingsVision}
       />
-      <div>
-        {winner ? <h3>winner: {winner.color}</h3> : <h2>play!</h2>}
-        <br/>
-        <BoardComponent
-          handleResetMove={handleResetMove}
-          handleMoved={handleMoved}
-          handlePawnEnd={handlePawnEnd}
-          pawnEnd={pawnEnd}
-          pause={pause}
-          setCanBack={setCanBack}
-          winner={winner}
-          board={board}
-          setBoard={setBoard}
-          currentPlayer={currentPlayer}
-          swapPlayer={swapPlayer}
-        />
-        <br/>
-        <button disabled={pause || !canBack} onClick={() => handleResetMove()}>back one turn</button>
-      </div>
-      <div>
-        <LostFigures
-          title={'black figures'}
-          figures={board.lostBlackFigures}
-        />
-        <LostFigures
-          title={'white figures'}
-          figures={board.lostWhiteFigures}
-        />
+      {settingsVision && <Settings hintsVision={hintsVision} setSettings={handleUpdateSettings}/>}
+      {settingsVision && <div className={'main_inactive'}/>}
+      <div className="main">
+        <div className="container">
+          <div className="main__inner">
+            <div className="main__content">
+              <div className="main__title">
+                <Title currentPlayer={players.currentPlayer} winner={players.winner}/>
+              </div>
+              <div className="main__game">
+                <div className="sidebar_control">
+                  <Timer
+                    handleRestart={handleRestart}
+                    timerIsOver={timerIsOver}
+                  />
+                  <ButtonSquare
+                    children={'Отменить ход'}
+                    onClick={handleResetMove}
+                    disabled={game.pause || !game.canBack}
+                  />
+                </div>
+                <BoardComponent
+                  handleResetMove={handleResetMove}
+                  handleMoved={handleMoved}
+                  handlePawnEnd={handlePawnEnd}
+                  swapPlayer={swapPlayer}
+                  hintsVision={hintsVision}
+                />
+              </div>
+            </div>
+            <div className={'sidebar_lost_figures'}>
+              <LostFigures
+                color={'black'}
+                figures={game.board.lostWhiteFigures}
+              />
+              <LostFigures
+                color={'white'}
+                figures={game.board.lostBlackFigures}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+})
 
 export default App;

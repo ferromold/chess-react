@@ -1,8 +1,8 @@
 import {Figure, FigureNames} from "./Figure";
 import {Colors} from "../Colors";
 import {Cell} from "../Cell";
-import blackLogo from "../../assets/king-black.svg";
-import whiteLogo from "../../assets/king-white.svg";
+import blackLogo from "../../assets/figures/king-black.png";
+import whiteLogo from "../../assets/figures/king-white.png";
 
 export class King extends Figure{
 

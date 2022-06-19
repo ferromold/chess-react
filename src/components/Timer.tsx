@@ -1,100 +1,105 @@
 import React, {FC, useEffect, useRef, useState} from 'react';
 import {Player} from "../models/Player";
 import {Colors} from "../models/Colors";
+import {observer} from "mobx-react-lite";
+import {time} from '../store/time'
+import {players} from '../store/players'
+import {game} from '../store/game'
+import BackgroundText from "./UI/BackgroundText";
+import TimeElement from "./UI/TimeElement";
+import ButtonSquare from "./UI/ButtonSquare";
 
-interface TimerProps{
-  currentPlayer: Player | null
-  restart: () => void
+interface TimerProps {
+  handleRestart: () => void
   timerIsOver: (color: Colors) => void
-  pause: boolean
-  setPause: (status: boolean) => void
-  winner: Player | null
-  pawnEnd: boolean
-  initialTime: number
 }
 
-const Timer: FC<TimerProps> = ({currentPlayer, restart, timerIsOver, pause, setPause, winner, pawnEnd, initialTime}) => {
-  const [blackTime, setBlackTime] = useState(initialTime)
-  const [whiteTime, setWhiteTime] = useState(initialTime)
+const Timer: FC<TimerProps> = observer(({handleRestart, timerIsOver}) => {
   const timer = useRef<null | ReturnType<typeof setInterval>>(null)
 
   useEffect(() => {
     startTimer()
-  }, [currentPlayer])
+  }, [players.currentPlayer])
 
   useEffect(() => {
-    pause ? removeTimer() : startTimer()
-  }, [pause])
+    game.pause ? removeTimer() : startTimer()
+  }, [game.pause])
 
   useEffect(() => {
-    winner ? removeTimer() : startTimer()
-  }, [winner])
+    players.winner ? removeTimer() : startTimer()
+  }, [players.winner])
 
   useEffect(() => {
-    if(whiteTime === 0) {
+    if (time.whiteTime === 0) {
       timerIsOver(Colors.WHITE)
       removeTimer()
     }
-    if(blackTime === 0) {
+    if (time.blackTime === 0) {
       timerIsOver(Colors.BLACK)
       removeTimer()
     }
-  }, [whiteTime, blackTime])
+  }, [time.whiteTime, time.blackTime])
 
-  function removeTimer(){
-    if(timer.current){
+  function removeTimer() {
+    if (timer.current) {
       clearInterval(timer.current)
     }
   }
 
-  function startTimer(){
+  function startTimer() {
     removeTimer()
-    const callback = currentPlayer?.color === Colors.WHITE ? decrementWhiteTimer : decrementBlackTimer
+    const callback = players.currentPlayer?.color === Colors.WHITE
+      ? time.decrementWhiteTime
+      : time.decrementBlackTime
     timer.current = setInterval(callback, 1000)
   }
 
-  function pauseTimer(){
-    if(winner || pawnEnd) return
-    if(!pause){
+  function pauseTimer() {
+    if (players.winner || game.pawnEnd) return
+    if (!game.pause) {
       removeTimer()
-      setPause(true)
-    } else{
+      game.setPause(true)
+    } else {
       startTimer()
-      setPause(false)
+      game.setPause(false)
     }
   }
 
-  function decrementBlackTimer(){
-    setBlackTime(prev => prev - 1)
-  }
-
-  function decrementWhiteTimer(){
-    setWhiteTime(prev => prev - 1)
-  }
-
-  function handleRestart(){
-    setBlackTime(initialTime)
-    setWhiteTime(initialTime)
+  function restart(){
+    handleRestart()
     startTimer()
-    restart()
   }
+
+  const blackTimeElement = time.blackTime > 60
+    ? <TimeElement time={Math.floor(time.blackTime / 60)} unit={'мин.'}/>
+    : <TimeElement time={time.blackTime} unit={'сек.'}/>
+
+  const whiteTimeElement = time.whiteTime > 60
+    ? <TimeElement time={Math.floor(time.whiteTime / 60)} unit={'мин.'}/>
+    : <TimeElement time={time.whiteTime} unit={'сек.'}/>
 
   return (
-    <div>
-      <div>
-        <button onClick={handleRestart}>restart game</button>
+    <div className="timer">
+      <div className="timer__black timer__left">
+        <div className={'timer__left_title'}><h3>Осталось времени</h3></div>
+        <div>
+          <h3>
+            у <BackgroundText text={'Чёрных'} color={'black'}/> : {blackTimeElement}
+          </h3>
+        </div>
       </div>
-      <br/>
-      <div>
-        <button onClick={pauseTimer}>pause game</button>
+      <ButtonSquare children={'Рестарт'} onClick={restart} className={'timer__restart'}/>
+      <ButtonSquare children={'Пауза'} onClick={pauseTimer} className={'timer__pause'}/>
+      <div className="timer__white timer__left">
+        <div className={'timer__left_title'}><h3>Осталось времени</h3></div>
+        <div>
+          <h3>
+            у <BackgroundText text={'Белых'} color={'white'}/> : {whiteTimeElement}
+          </h3>
+        </div>
       </div>
-      <br/>
-      <h3>pause: {`${pause}`}</h3>
-      <br/>
-      <h2>black - {blackTime}</h2>
-      <h2>white - {whiteTime}</h2>
     </div>
   );
-};
+})
 
 export default Timer;

@@ -157,7 +157,6 @@ export class Cell{
       target.setFigure(this.figure)
       this.figure = null
       if(target.isCheck()) {
-        console.log('check')
         return true
       }
     }

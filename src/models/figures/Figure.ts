@@ -1,4 +1,4 @@
-import logo from '../../assets/king-black.svg'
+import logo from '../../assets/figures/king-black.png'
 import {Cell} from "../Cell";
 import {Colors} from "../Colors";
 
